@@ -15,52 +15,80 @@ public class UserController {
     @Autowired
     private UserRepository userRepository;
 
-    // Register User
+    // ============================================================
+    // REGISTER USER
+    // ============================================================
+
     @PostMapping("/register")
     public User register(@RequestBody User user) {
+
         return userRepository.save(user);
     }
+
+    // ============================================================
+    // LOGIN USER
+    // ============================================================
 
     @PostMapping("/login")
     public User login(@RequestBody User user) {
 
-    System.out.println("========== LOGIN ==========");
+        System.out.println("========== LOGIN ==========");
 
-    System.out.println("Email Received: " + user.getEmail());
+        // Log only the email.
+        // NEVER print the user's password in logs.
+        System.out.println("Email Received: " + user.getEmail());
 
-    System.out.println("Password Received: " + user.getPassword());
+        User foundUser = userRepository
+                .findByEmailAndPassword(
+                        user.getEmail(),
+                        user.getPassword()
+                )
+                .orElse(null);
 
-    User foundUser = userRepository
-            .findByEmailAndPassword(
-                    user.getEmail(),
-                    user.getPassword()
-            )
-            .orElse(null);
+        if (foundUser == null) {
 
-    if(foundUser == null){
-        System.out.println("❌ User NOT Found");
-    }else{
-        System.out.println("✅ User Found");
-        System.out.println(foundUser.getEmail());
+            System.out.println("❌ User NOT Found");
+
+        } else {
+
+            System.out.println("✅ User Found");
+            System.out.println(
+                    "Login successful for: "
+                            + foundUser.getEmail()
+            );
+        }
+
+        System.out.println("===========================");
+
+        return foundUser;
     }
 
-    System.out.println("===========================");
+    // ============================================================
+    // GET ALL USERS
+    // ============================================================
 
-    return foundUser;
-}
-    // Get All Users
     @GetMapping("/users")
     public List<User> getAllUsers() {
+
         return userRepository.findAll();
     }
 
-    // Get User By Id
+    // ============================================================
+    // GET USER BY ID
+    // ============================================================
+
     @GetMapping("/users/{id}")
     public User getUserById(@PathVariable Long id) {
-        return userRepository.findById(id).orElse(null);
+
+        return userRepository
+                .findById(id)
+                .orElse(null);
     }
 
-    // Delete User
+    // ============================================================
+    // DELETE USER
+    // ============================================================
+
     @DeleteMapping("/users/{id}")
     public String deleteUser(@PathVariable Long id) {
 
