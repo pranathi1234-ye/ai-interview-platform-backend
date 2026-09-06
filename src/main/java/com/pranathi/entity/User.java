@@ -1,7 +1,10 @@
-xpackage com.pranathi.ai_interview_backend.entity;
+package com.pranathi.ai_interview_backend.entity;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "users")
@@ -13,21 +16,9 @@ public class User {
 
     private String name;
 
-    @Column(unique = true, nullable = false)
     private String email;
 
-    /*
-     * Password can be received from the frontend
-     * for registration/login,
-     * but it will NEVER be returned in JSON responses.
-     */
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    @Column(nullable = false)
     private String password;
-
-    // ============================================================
-    // CONSTRUCTORS
-    // ============================================================
 
     public User() {
     }
@@ -38,40 +29,32 @@ public class User {
         this.password = password;
     }
 
-    // ============================================================
-    // GETTERS
-    // ============================================================
-
     public Long getId() {
         return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getName() {
         return name;
     }
 
-    public String getEmail() {
-        return email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    // ============================================================
-    // SETTERS
-    // ============================================================
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
     public void setName(String name) {
         this.name = name;
     }
 
+    public String getEmail() {
+        return email;
+    }
+
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getPassword() {
+        return password;
     }
 
     public void setPassword(String password) {
