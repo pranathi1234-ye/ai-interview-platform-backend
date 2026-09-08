@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
-@EntityScan(basePackages = "com.pranathi.entity")
-@EnableJpaRepositories(basePackages = "com.pranathi.repository")
+@EntityScan(basePackages = "com.pranathi.ai_interview_backend.entity")
+@EnableJpaRepositories(basePackages = "com.pranathi.ai_interview_backend.repository")
 public class AiInterviewBackendApplication {
 
     public static void main(String[] args) {
