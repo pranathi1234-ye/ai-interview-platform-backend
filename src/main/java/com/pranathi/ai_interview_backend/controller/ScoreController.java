@@ -16,9 +16,7 @@ public class ScoreController {
     private ScoreRepository scoreRepository;
 
     @PostMapping
-    public Score saveScore(
-            @RequestBody Score score
-    ) {
+    public Score saveScore(@RequestBody Score score) {
         return scoreRepository.save(score);
     }
 

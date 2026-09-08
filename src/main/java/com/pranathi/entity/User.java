@@ -1,10 +1,6 @@
-package com.pranathi.entity;
+package com.pranathi.ai_interview_backend.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "users")
@@ -16,18 +12,16 @@ public class User {
 
     private String name;
 
+    @Column(unique = true, nullable = false)
     private String email;
 
     private String password;
 
+    // Default constructor
     public User() {
     }
 
-    public User(String name, String email, String password) {
-        this.name = name;
-        this.email = email;
-        this.password = password;
-    }
+    // Getters and Setters
 
     public Long getId() {
         return id;

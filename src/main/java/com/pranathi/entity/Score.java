@@ -11,7 +11,9 @@ public class Score {
     private Long id;
 
     private String username;
+
     private String subject;
+
     private int score;
 
     public Score() {
