@@ -1,4 +1,4 @@
-package com.pranathi.ai_interview_backend.entity;
+package com.pranathi.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
