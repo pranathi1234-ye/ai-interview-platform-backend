@@ -16,9 +16,9 @@ public class CorsConfig {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        // Allow the deployed frontend
+        // Allow the deployed Render frontend
         config.setAllowedOrigins(Arrays.asList(
-                "https://ai-interview-platform-frontend-production.up.railway.app"
+                "https://ai-interview-platform-frontend-5rbw.onrender.com"
         ));
 
         // Allow required HTTP methods
