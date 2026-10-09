@@ -4,6 +4,8 @@ package com.pranathi.ai_interview_backend.controller;
 import com.pranathi.ai_interview_backend.dto.UserResponse;
 import com.pranathi.ai_interview_backend.entity.User;
 import com.pranathi.ai_interview_backend.repository.UserRepository;
+import com.pranathi.ai_interview_backend.service.PasswordService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,28 +13,40 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {
+    "https://ai-interview-platform-frontend-5rbw.onrender.com"
+})
 public class UserController {
 
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private PasswordService passwordService;
+
     @PostMapping("/register")
     public UserResponse register(@RequestBody User user) {
+
+        user.setPassword(
+                passwordService.hashPassword(user.getPassword())
+        );
+
         User savedUser = userRepository.save(user);
+
         return toUserResponse(savedUser);
     }
 
     @PostMapping("/login")
     public UserResponse login(@RequestBody User user) {
+
         User foundUser = userRepository
-                .findByEmailAndPassword(
-                        user.getEmail(),
-                        user.getPassword()
-                )
+                .findByEmail(user.getEmail())
                 .orElse(null);
 
-        if (foundUser == null) {
+        if (foundUser == null ||
+                !passwordService.verifyPassword(
+                        user.getPassword(),
+                        foundUser.getPassword())) {
             return null;
         }
 
