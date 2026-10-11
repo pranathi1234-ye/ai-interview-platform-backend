@@ -1,96 +1,94 @@
 package com.pranathi.ai_interview_backend.controller;
 
+import com.pranathi.ai_interview_backend.dto.AuthResponse;
 import com.pranathi.ai_interview_backend.dto.UserResponse;
 import com.pranathi.ai_interview_backend.entity.User;
 import com.pranathi.ai_interview_backend.repository.UserRepository;
-import com.pranathi.ai_interview_backend.service.PasswordService;
+import com.pranathi.ai_interview_backend.service.JwtService;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
 @CrossOrigin(origins = {
-        "http://localhost:3000",
-        "https://ai-interview-platform-frontend-5rbw.onrender.com"
+    "http://localhost:3000",
+    "https://ai-interview-platform-frontend-5rbw.onrender.com"
 })
 public class UserController {
 
     private final UserRepository userRepository;
-    private final PasswordService passwordService;
+    private final JwtService jwtService;
+    private final PasswordEncoder passwordEncoder;
 
     public UserController(
             UserRepository userRepository,
-            PasswordService passwordService) {
+            JwtService jwtService,
+            PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
-        this.passwordService = passwordService;
-    }
-
-    private UserResponse toUserResponse(User user) {
-        return new UserResponse(
-                user.getId(),
-                user.getName(),
-                user.getEmail()
-        );
+        this.jwtService = jwtService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // Register a new user
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody User user) {
 
-        if (user.getName() == null
-                || user.getEmail() == null
-                || user.getPassword() == null
-                || user.getPassword().isBlank()) {
+        if (user.getName() == null || user.getName().isBlank()
+                || user.getEmail() == null || user.getEmail().isBlank()
+                || user.getPassword() == null || user.getPassword().isBlank()) {
             return ResponseEntity.badRequest()
-                    .body("Name, email, and password are required.");
+                    .body("Name, email, and password are required");
         }
 
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("Email is already registered.");
+                    .body("Email already registered");
         }
 
-        user.setPassword(
-                passwordService.hashPassword(user.getPassword())
-        );
-
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         User savedUser = userRepository.save(user);
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(toUserResponse(savedUser));
+                .body(new UserResponse(
+                        savedUser.getId(),
+                        savedUser.getName(),
+                        savedUser.getEmail()
+                ));
     }
 
-    // Login an existing user
+    // Login and generate JWT token
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody User user) {
+    public ResponseEntity<?> login(@RequestBody User loginRequest) {
 
-        if (user.getEmail() == null
-                || user.getPassword() == null) {
+        if (loginRequest.getEmail() == null
+                || loginRequest.getEmail().isBlank()
+                || loginRequest.getPassword() == null
+                || loginRequest.getPassword().isBlank()) {
             return ResponseEntity.badRequest()
-                    .body("Email and password are required.");
+                    .body("Email and password are required");
         }
 
         Optional<User> optionalUser =
-                userRepository.findByEmail(user.getEmail());
+                userRepository.findByEmail(loginRequest.getEmail());
 
         if (optionalUser.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Invalid email or password.");
+                    .body("Invalid email or password");
         }
 
-        User foundUser = optionalUser.get();
-        String storedPassword = foundUser.getPassword();
-        String submittedPassword = user.getPassword();
+        User user = optionalUser.get();
+        String storedPassword = user.getPassword();
+        String suppliedPassword = loginRequest.getPassword();
 
         if (storedPassword == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Invalid email or password.");
+                    .body("Invalid email or password");
         }
 
         boolean passwordMatches;
@@ -98,67 +96,76 @@ public class UserController {
         if (storedPassword.startsWith("$2a$")
                 || storedPassword.startsWith("$2b$")
                 || storedPassword.startsWith("$2y$")) {
-
-            passwordMatches = passwordService.verifyPassword(
-                    submittedPassword,
-                    storedPassword
-            );
-
-        } else {
-            // Temporary migration for existing plain-text passwords
             passwordMatches =
-                    storedPassword.equals(submittedPassword);
+                    passwordEncoder.matches(suppliedPassword, storedPassword);
+        } else {
+            // Migrate a legacy plaintext password after successful login.
+            passwordMatches = storedPassword.equals(suppliedPassword);
 
             if (passwordMatches) {
-                foundUser.setPassword(
-                        passwordService.hashPassword(submittedPassword)
-                );
-                userRepository.save(foundUser);
+                user.setPassword(passwordEncoder.encode(suppliedPassword));
+                userRepository.save(user);
             }
         }
 
         if (!passwordMatches) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Invalid email or password.");
+                    .body("Invalid email or password");
         }
 
-        return ResponseEntity.ok(toUserResponse(foundUser));
+        String token = jwtService.generateToken(user.getEmail());
+
+        return ResponseEntity.ok(new AuthResponse(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                token
+        ));
     }
 
-    // Get all users without exposing passwords
-    @GetMapping("/users")
-    public List<UserResponse> getAllUsers() {
-        return userRepository.findAll()
-                .stream()
-                .map(this::toUserResponse)
-                .collect(Collectors.toList());
-    }
+    // Get the currently authenticated user's profile
+    @GetMapping("/users/me")
+    public ResponseEntity<?> getCurrentUser(Authentication authentication) {
 
-    // Get one user by ID
-    @GetMapping("/users/{id}")
-    public ResponseEntity<?> getUserById(@PathVariable Long id) {
+        if (authentication == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
-        Optional<User> user = userRepository.findById(id);
+        Optional<User> optionalUser =
+                userRepository.findByEmail(authentication.getName());
 
-        if (user.isEmpty()) {
+        if (optionalUser.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("User not found.");
+                    .body("User not found");
         }
 
-        return ResponseEntity.ok(toUserResponse(user.get()));
+        User user = optionalUser.get();
+
+        return ResponseEntity.ok(new UserResponse(
+                user.getId(),
+                user.getName(),
+                user.getEmail()
+        ));
     }
 
-    // Delete a user by ID
-    @DeleteMapping("/users/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+    // Delete only the currently authenticated user's account
+    @DeleteMapping("/users/me")
+    public ResponseEntity<?> deleteCurrentUser(Authentication authentication) {
 
-        if (!userRepository.existsById(id)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("User not found.");
+        if (authentication == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        userRepository.deleteById(id);
+        Optional<User> optionalUser =
+                userRepository.findByEmail(authentication.getName());
 
-        return ResponseEntity.ok("User deleted successfully.");
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("User not found");
+        }
+
+        userRepository.delete(optionalUser.get());
+
+        return ResponseEntity.ok("Your account has been deleted");
     }
 }
