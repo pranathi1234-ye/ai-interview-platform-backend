@@ -1,3 +1,4 @@
+
 package com.pranathi.ai_interview_backend.config;
 
 import org.springframework.context.annotation.Bean;
@@ -16,27 +17,30 @@ public class CorsConfig {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        // Allow the deployed Render frontend
+        // Allow the deployed frontend and local development.
         config.setAllowedOrigins(Arrays.asList(
-                "https://ai-interview-platform-frontend-5rbw.onrender.com"
+                "https://ai-interview-platform-frontend-5rbw.onrender.com",
+                "http://localhost:3000",
+                "http://127.0.0.1:3000"
         ));
 
-        // Allow required HTTP methods
+        // Allow required HTTP methods.
         config.setAllowedMethods(Arrays.asList(
                 "GET",
                 "POST",
                 "PUT",
+                "PATCH",
                 "DELETE",
                 "OPTIONS"
         ));
 
-        // Allow all request headers
+        // Allow Authorization and other request headers.
         config.setAllowedHeaders(Arrays.asList("*"));
 
-        // We are not using cookies/session authentication
+        // JWT authentication uses a Bearer token, not cookies.
         config.setAllowCredentials(false);
 
-        // Cache preflight response
+        // Cache preflight responses.
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source =
